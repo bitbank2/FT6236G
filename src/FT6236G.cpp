@@ -37,7 +37,7 @@ int FT6236G::init(int iSDA, int iSCL, bool bBitBang, uint32_t u32Speed)
 //
 int FT6236G::getSamples(TOUCHINFO *pTI)
 {
-uint8_t ucTemp[8];
+uint8_t ucTemp[16];
 int i, rc;
     
     if (!pTI)
@@ -49,8 +49,8 @@ int i, rc;
     }
     pTI->count = 0;
     i = ucTemp[0]; // number of touch points available
-    if (i >= 1) { // get first point
-        rc = I2CReadRegister(&_bbi2c, _iAddr, TOUCH_REG_XH, ucTemp, 6); // read X+Y position
+    if (i >= 1) { // get data
+        rc = I2CReadRegister(&_bbi2c, _iAddr, TOUCH_REG_XH, ucTemp, 6*i); // read X+Y position(s)
         if ((ucTemp[0] & 0x40) == 0 && (ucTemp[2] & 0xf0) != 0xf0) { // finger is down
             pTI->x[0] = ((ucTemp[0] & 0xf) << 8) | ucTemp[1];
             pTI->y[0] = ((ucTemp[2] & 0xf) << 8) | ucTemp[3];
@@ -60,13 +60,12 @@ int i, rc;
             pTI->count++;
         }
         if (i > 1) { // get second point
-            rc = I2CReadRegister(&_bbi2c, _iAddr, TOUCH_REG_XH+PT2_OFFSET, ucTemp, 6); // read X+Y position
-            if ((ucTemp[0] & 0x40) == 0 && (ucTemp[2] & 0xf0) != 0xf0) { // finger is down
-                pTI->x[1] = ((ucTemp[0] & 0xf) << 8) | ucTemp[1];
-                pTI->y[1] = ((ucTemp[2] & 0xf) << 8) | ucTemp[3];
+            if ((ucTemp[6] & 0x40) == 0 && (ucTemp[8] & 0xf0) != 0xf0) { // finger is down
+                pTI->x[1] = ((ucTemp[6] & 0xf) << 8) | ucTemp[7];
+                pTI->y[1] = ((ucTemp[8] & 0xf) << 8) | ucTemp[9];
                 // get touch pressure and area
-                pTI->pressure[1] = ucTemp[4];
-                pTI->area[1] = ucTemp[5];
+                pTI->pressure[1] = ucTemp[10];
+                pTI->area[1] = ucTemp[11];
                 pTI->count++;
             }
         }
